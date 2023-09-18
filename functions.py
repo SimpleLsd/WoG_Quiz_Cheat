@@ -39,7 +39,7 @@ def get_gun_name(feature_vector, guns_feature_dict):
 
     print(sorted_diff[0][1])
 
-    if sorted_diff[0][1] < 40:
+    if sorted_diff[0][1] < 50:
         return sorted_diff[0][0]
     else:
         return 'none'

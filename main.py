@@ -15,7 +15,7 @@ from pytesseract import image_to_string as its
 from PIL import ImageGrab
 
 
-position = (271, 162)
+position = (276, 924)
 
 with open('guns_feature_dict.json', 'r') as file:
     guns_feature_dict = json.load(file)
@@ -114,7 +114,7 @@ class MyWindow(QWidget):
         if gun_name != "none":
             print(gun_name)
             self.changeLabelText(gun_name, "#05e305")
-            self.mouse_auto_click(gun_name)
+            # self.mouse_auto_click(gun_name)
 
         else:
             self.changeLabelText("未识别", "#FF1122")
@@ -132,12 +132,18 @@ class MyWindow(QWidget):
         # screenshot = ImageGrab.grab(bbox=(t_left, t_top, t_right, t_bottom))
 
         # 定义屏幕区域的坐标和大小
-        r_1 = t_left, t_top, width, height
-        r_2 = t_left + 200, t_top, width, height
-        r_3 = t_left, t_top + 30, width, height
-        r_4 = t_left + 200, t_top + 30, width, height
-        r_5 = t_left, t_top + 60, width, height
-        r_6 = t_left + 200, t_top + 60, width, height
+        # r_1 = t_left, t_top, width, height
+        # r_2 = t_left + 200, t_top, width, height
+        # r_3 = t_left, t_top + 30, width, height
+        # r_4 = t_left + 200, t_top + 30, width, height
+        # r_5 = t_left, t_top + 60, width, height
+        # r_6 = t_left + 200, t_top + 60, width, height
+        r_1 = t_left, t_top, t_left + width, t_top + height
+        r_2 = t_left + 200, t_top, t_left + 200 + width, t_top + height
+        r_3 = t_left, t_top + 30, t_left + width, t_top + 30 + height
+        r_4 = t_left + 200, t_top + 30, t_left + 200 + width, t_top + 30 + height
+        r_5 = t_left, t_top + 60, t_left + width, t_top + 60 + height
+        r_6 = t_left + 200, t_top + 60, t_left + 200 + width,t_top + 60 + height
 
         t_1 = t_left, t_top
         t_2 = t_left + 200, t_top
@@ -148,20 +154,29 @@ class MyWindow(QWidget):
 
         target = [t_1, t_2, t_3, t_4, t_5, t_6]
 
-        # 使用pyautogui截取指定区域的屏幕截图
-        screenshot_1 = pyautogui.screenshot(region=r_1)
-        screenshot_2 = pyautogui.screenshot(region=r_2)
-        screenshot_3 = pyautogui.screenshot(region=r_3)
-        screenshot_4 = pyautogui.screenshot(region=r_4)
-        screenshot_5 = pyautogui.screenshot(region=r_5)
-        screenshot_6 = pyautogui.screenshot(region=r_6)
+        print("目标坐标：", r_1, r_2, r_3, r_4, r_5, r_6)
 
-        # screenshot_1.save("screenshot_1.jpg")
-        # screenshot_2.save("screenshot_2.jpg")
-        # screenshot_3.save("screenshot_3.jpg")
-        # screenshot_4.save("screenshot_4.jpg")
-        # screenshot_5.save("screenshot_5.jpg")
-        # screenshot_6.save("screenshot_6.jpg")
+        # 使用pyautogui截取指定区域的屏幕截图
+        # screenshot_1 = pyautogui.screenshot(region=r_1).convert('RGB')
+        # screenshot_2 = pyautogui.screenshot(region=r_2).convert('RGB')
+        # screenshot_3 = pyautogui.screenshot(region=r_3).convert('RGB')
+        # screenshot_4 = pyautogui.screenshot(region=r_4).convert('RGB')
+        # screenshot_5 = pyautogui.screenshot(region=r_5).convert('RGB')
+        # screenshot_6 = pyautogui.screenshot(region=r_6).convert('RGB')
+
+        screenshot_1 = ImageGrab.grab(bbox=r_1).convert('RGB')
+        screenshot_2 = ImageGrab.grab(bbox=r_2).convert('RGB')
+        screenshot_3 = ImageGrab.grab(bbox=r_3).convert('RGB')
+        screenshot_4 = ImageGrab.grab(bbox=r_4).convert('RGB')
+        screenshot_5 = ImageGrab.grab(bbox=r_5).convert('RGB')
+        screenshot_6 = ImageGrab.grab(bbox=r_6).convert('RGB')
+
+        screenshot_1.save("screenshot_1.jpg")
+        screenshot_2.save("screenshot_2.jpg")
+        screenshot_3.save("screenshot_3.jpg")
+        screenshot_4.save("screenshot_4.jpg")
+        screenshot_5.save("screenshot_5.jpg")
+        screenshot_6.save("screenshot_6.jpg")
 
         # 使用pytesseract来识别文字
         text_1 = its(screenshot_1).rstrip('\n').rstrip('.').rstrip(',')
@@ -170,8 +185,10 @@ class MyWindow(QWidget):
         text_4 = its(screenshot_4).rstrip('\n').rstrip('.').rstrip(',')
         text_5 = its(screenshot_5).rstrip('\n').rstrip('.').rstrip(',')
         text_6 = its(screenshot_6).rstrip('\n').rstrip('.').rstrip(',')
-        option_names = [text_1, text_2, text_3, text_4, text_5, text_6]
+
         # 获取到选项文字
+        option_names = [text_1, text_2, text_3, text_4, text_5, text_6]
+        # option_names = ['']
 
         print("识别到的文字：", option_names)
         useful = True
