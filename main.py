@@ -11,7 +11,9 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPainter, QColor
 from functools import partial
+from pytesseract import image_to_string as its
 from PIL import ImageGrab
+
 
 position = (271, 162)
 
@@ -97,6 +99,7 @@ class MyWindow(QWidget):
         bottom = window_position.y() + 49 + 158  # 右下角的 y 坐标
 
         screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
+        screenshot = screenshot.convert('RGB')
         screenshot.save("screenshot.jpg")
 
         screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
@@ -161,7 +164,6 @@ class MyWindow(QWidget):
         # screenshot_6.save("screenshot_6.jpg")
 
         # 使用pytesseract来识别文字
-        from pytesseract import image_to_string as its
         text_1 = its(screenshot_1).rstrip('\n').rstrip('.').rstrip(',')
         text_2 = its(screenshot_2).rstrip('\n').rstrip('.').rstrip(',')
         text_3 = its(screenshot_3).rstrip('\n').rstrip('.').rstrip(',')
