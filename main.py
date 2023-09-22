@@ -17,7 +17,7 @@ from pytesseract import image_to_string as its
 from PIL import ImageGrab
 
 
-position = (304, 809)
+position = (186, 916)
 
 with open('guns_feature_dict.json', 'r') as file:
     guns_feature_dict = json.load(file)
@@ -34,7 +34,9 @@ def euclidean_distance(vector1, vector2):
 class MyWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.UI()
 
+    def UI(self):
         self.rect_color = Qt.white  # 初始颜色为白色
         self.label_text = "等待操作"
 
@@ -69,11 +71,11 @@ class MyWindow(QWidget):
         self.button_close.setGeometry(240, 220, 60, 30)
         self.button_close.clicked.connect(self.test)
 
-        self.button_close = QPushButton("注册选项", self)
+        self.button_close = QPushButton("重生成文件", self)
         self.button_close.setGeometry(240, 250, 60, 30)
         self.button_close.clicked.connect(self.register_options_file)
 
-        self.button_close = QPushButton("注册到文件", self)
+        self.button_close = QPushButton("全流程注册", self)
         self.button_close.setGeometry(300, 250, 60, 30)
         self.button_close.clicked.connect(self.register_options_now)
 
@@ -143,9 +145,8 @@ class MyWindow(QWidget):
 
     def test(self):
         print("TEST")
-        # screenshots_img = self.get_options_screenshots("img")
-        screenshots_feature = self.get_options_screenshots("feature")
-        option_names = self.get_options_names_by_features(screenshots_feature)
+        screenshots_cv2 = self.get_options_screenshots()[1]
+        option_names = self.get_options_names_by_features(screenshots_cv2)
         print(option_names)
         # print(screenshots_text)
         # print(screenshots_feature)
@@ -172,13 +173,12 @@ class MyWindow(QWidget):
             json.dump(guns_feature_dict, f)
 
     def register_options_now(self):
-        screenshots = self.get_options_screenshots("img")
-        screenshots_feature = self.get_options_screenshots("feature")
-        names = self.get_options_names_by_pytesseract(screenshots)
-        print(names)
-        self.get_options_register(names, screenshots_feature)
+        screenshots_img, screenshots_cv2 = self.get_options_screenshots()
+        option_names = self.get_options_names_by_pytesseract(screenshots_img)
+        print(option_names)
+        self.get_options_register(option_names, screenshots_cv2)
 
-    def get_options_screenshots(self, type):
+    def get_options_screenshots(self):
         window_position = self.pos()
         width = 199
         height = 29
@@ -195,24 +195,23 @@ class MyWindow(QWidget):
 
         regions = [o_0, o_1, o_2, o_3, o_4, o_5]
 
-        option_screenshots = []
-        final_screenshots = []
+        screenshots_img = []
+        screenshots_cv2 = []
 
         for i in range(len(regions)):
             screenshot = pyautogui.screenshot(region=regions[i])
-            option_screenshots.append(screenshot)
+            screenshots_img.append(screenshot)
 
-        for i in range(len(option_screenshots)):
-            option_screenshots[i].save("test/" + str(i) + ".png")
+        # 是否在此处保存图片
+        # for i in range(len(option_screenshots)):
+        #     option_screenshots[i].save("test/" + str(i) + ".png")
 
-        for i in range(len(option_screenshots)):
-            final_screenshots.append(cv2.cvtColor(
-                np.array(option_screenshots[i]), cv2.COLOR_RGB2BGR))
-
-        if type == "img":
-            return option_screenshots
-        else:
-            return final_screenshots
+        for i in range(len(screenshots_img)):
+            screenshots_cv2.append(cv2.cvtColor(
+                np.array(screenshots_img[i]), cv2.COLOR_RGB2BGR))
+            
+        return screenshots_img, screenshots_cv2
+    
 
     def get_options_names_by_pytesseract(self, screenshots):
         # 使用pytesseract来识别文字
