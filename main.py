@@ -6,6 +6,8 @@ import cv2
 import pyautogui
 import numpy as np
 import functions as fun
+import random
+import string
 
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel
 from PyQt5.QtCore import Qt
@@ -15,10 +17,13 @@ from pytesseract import image_to_string as its
 from PIL import ImageGrab
 
 
-position = (276, 924)
+position = (304, 809)
 
 with open('guns_feature_dict.json', 'r') as file:
     guns_feature_dict = json.load(file)
+
+with open('options_feature_dict.json', 'r') as file:
+    options_feature_dict = json.load(file)
 
 
 def euclidean_distance(vector1, vector2):
@@ -60,6 +65,18 @@ class MyWindow(QWidget):
         self.button_close.setGeometry(10, 250, 60, 30)
         self.button_close.clicked.connect(self.close_window)
 
+        self.button_close = QPushButton("测试", self)
+        self.button_close.setGeometry(240, 220, 60, 30)
+        self.button_close.clicked.connect(self.test)
+
+        self.button_close = QPushButton("注册选项", self)
+        self.button_close.setGeometry(240, 250, 60, 30)
+        self.button_close.clicked.connect(self.register_options_file)
+
+        self.button_close = QPushButton("注册到文件", self)
+        self.button_close.setGeometry(300, 250, 60, 30)
+        self.button_close.clicked.connect(self.register_options_now)
+
         self.button_close = QPushButton("注册1", self)
         self.button_close.setGeometry(90, 220, 60, 20)
         self.button_close.clicked.connect(partial(self.register, 1))
@@ -100,13 +117,15 @@ class MyWindow(QWidget):
 
         screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
         screenshot = screenshot.convert('RGB')
-        screenshot.save("screenshot.jpg")
+        screenshot.save("screenshot.png")
 
         screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
 
+        # print(screenshot)
+
         feature_vector = fun.get_gunimg_feature(screenshot)
 
-        # print("本次特征", feature_vector)
+        print("本次特征", feature_vector)
 
         gun_name = fun.get_gun_name(
             feature_vector, guns_feature_dict).strip(".jpg")
@@ -114,37 +133,157 @@ class MyWindow(QWidget):
         if gun_name != "none":
             print(gun_name)
             self.changeLabelText(gun_name, "#05e305")
-            # self.mouse_auto_click(gun_name)
+            # option_names = self.get_options_names_by_pytesseract(
+            #     self.get_options_screenshots())
+            # self.get_options_register(option_names)
+            # self.mouse_auto_click(gun_name, option_names)
 
         else:
             self.changeLabelText("未识别", "#FF1122")
 
-    def mouse_auto_click(self, gun_name):
+    def test(self):
+        print("TEST")
+        # screenshots_img = self.get_options_screenshots("img")
+        screenshots_feature = self.get_options_screenshots("feature")
+        option_names = self.get_options_names_by_features(screenshots_feature)
+        print(option_names)
+        # print(screenshots_text)
+        # print(screenshots_feature)
+        # a = self.get_options_names_by_pytesseract(screenshots_feature)
+        # print(a)
+
+    def register_options_file(self):
+        gun_img_folder_path = './options'
+        guns_feature_dict = {}
+
+        for filename in os.listdir(gun_img_folder_path):
+            if filename.endswith(('.png')):  # 仅处理图像文件，可以根据需要添加其他扩展名
+                # 拼接完整的文件路径
+                img_path = os.path.join(gun_img_folder_path, filename)
+
+                # 使用OpenCV读取图像
+                img = cv2.imread(img_path)
+
+                feature_vector = fun.get_optionimg_feature(img)
+
+                guns_feature_dict[filename] = list(feature_vector)
+
+        with open('options_feature_dict.json', 'w') as f:
+            json.dump(guns_feature_dict, f)
+
+    def register_options_now(self):
+        screenshots = self.get_options_screenshots("img")
+        screenshots_feature = self.get_options_screenshots("feature")
+        names = self.get_options_names_by_pytesseract(screenshots)
+        print(names)
+        self.get_options_register(names, screenshots_feature)
+
+    def get_options_screenshots(self, type):
+        window_position = self.pos()
+        width = 199
+        height = 29
+
+        o_left = window_position.x()
+        o_top = window_position.y() + 299
+
+        o_0 = o_left, o_top, width, height
+        o_1 = o_left + 201, o_top, width, height
+        o_2 = o_left, o_top + 31, width, height
+        o_3 = o_left + 201, o_top + 31, width, height
+        o_4 = o_left, o_top + 62, width, height
+        o_5 = o_left + 201, o_top + 62, width, height
+
+        regions = [o_0, o_1, o_2, o_3, o_4, o_5]
+
+        option_screenshots = []
+        final_screenshots = []
+
+        for i in range(len(regions)):
+            screenshot = pyautogui.screenshot(region=regions[i])
+            option_screenshots.append(screenshot)
+
+        for i in range(len(option_screenshots)):
+            option_screenshots[i].save("test/" + str(i) + ".png")
+
+        for i in range(len(option_screenshots)):
+            final_screenshots.append(cv2.cvtColor(
+                np.array(option_screenshots[i]), cv2.COLOR_RGB2BGR))
+
+        if type == "img":
+            return option_screenshots
+        else:
+            return final_screenshots
+
+    def get_options_names_by_pytesseract(self, screenshots):
+        # 使用pytesseract来识别文字
+        text_1 = its(screenshots[0]).rstrip('\n').rstrip('.').rstrip(',')
+        text_2 = its(screenshots[1]).rstrip('\n').rstrip('.').rstrip(',')
+        text_3 = its(screenshots[2]).rstrip('\n').rstrip('.').rstrip(',')
+        text_4 = its(screenshots[3]).rstrip('\n').rstrip('.').rstrip(',')
+        text_5 = its(screenshots[4]).rstrip('\n').rstrip('.').rstrip(',')
+        text_6 = its(screenshots[5]).rstrip('\n').rstrip('.').rstrip(',')
+
+        # 获取到选项文字
+        option_names = [text_1, text_2, text_3, text_4, text_5, text_6]
+        return option_names
+
+    def get_options_names_by_features(self, screenshots):
+        # print(screenshots)
+        names = []
+        for i in range(len(screenshots)):
+            # print(screenshots[i])
+            feature_vector = fun.get_optionimg_feature(screenshots[i])
+            # print(feature_vector)
+            option_name = fun.get_option_name_by_feature(
+                feature_vector, options_feature_dict)
+            names.append(option_name)
+        return names
+
+    def get_options_register(self, option_names, screenshots):
+        for i in range(len(screenshots)):
+            if option_names[i] != "":
+                # print(screenshots[i])
+                cv2.imwrite("./options/" +
+                            option_names[i] + ".png", screenshots[i])
+            else:
+                length = 20
+                random_string = ''.join(random.choice(
+                    string.ascii_letters + string.digits) for _ in range(length))
+                cv2.imwrite("./options/" +
+                            random_string + ".png", screenshots[i])
+
+        options_img_folder_path = './options'
+
+        guns_feature_dict = {}
+
+        num = 0
+
+        for filename in os.listdir(options_img_folder_path):
+            if filename.endswith(('.jpg', '.jpeg', '.png', '.bmp')):  # 仅处理图像文件，可以根据需要添加其他扩展名
+                # 拼接完整的文件路径
+                img_path = os.path.join(options_img_folder_path, filename)
+
+                # 使用OpenCV读取图像
+                img = cv2.imread(img_path)
+
+                feature_vector = fun.get_optionimg_feature(img)
+
+                guns_feature_dict[filename.strip(".png")] = feature_vector
+                num += 1
+
+        with open('options_feature_dict.json', 'w') as f:
+            json.dump(guns_feature_dict, f)
+
+        print("注册完成", "目前有", num, "为", round(num/265*100, 2), "%")
+
+        # self.changeLabelText("注册完成", 'green')
+
+    def mouse_auto_click(self, gun_name, option_names):
         window_position = self.pos()
         t_left = window_position.x() + 10  # 左上角的 x 坐标
         t_top = window_position.y() + 300  # 左上角的 y 坐标
-        width = 180
-        height = 30
 
-        # t_right = t_left + 199  # 右下角的 x 坐标
-        # t_bottom = t_top + 29  # 右下角的 y 坐标
-
-        # screenshot = ImageGrab.grab(bbox=(t_left, t_top, t_right, t_bottom))
-
-        # 定义屏幕区域的坐标和大小
-        # r_1 = t_left, t_top, width, height
-        # r_2 = t_left + 200, t_top, width, height
-        # r_3 = t_left, t_top + 30, width, height
-        # r_4 = t_left + 200, t_top + 30, width, height
-        # r_5 = t_left, t_top + 60, width, height
-        # r_6 = t_left + 200, t_top + 60, width, height
-        r_1 = t_left, t_top, t_left + width, t_top + height
-        r_2 = t_left + 200, t_top, t_left + 200 + width, t_top + height
-        r_3 = t_left, t_top + 30, t_left + width, t_top + 30 + height
-        r_4 = t_left + 200, t_top + 30, t_left + 200 + width, t_top + 30 + height
-        r_5 = t_left, t_top + 60, t_left + width, t_top + 60 + height
-        r_6 = t_left + 200, t_top + 60, t_left + 200 + width,t_top + 60 + height
-
+        # 鼠标点击坐标
         t_1 = t_left, t_top
         t_2 = t_left + 200, t_top
         t_3 = t_left, t_top + 30
@@ -154,43 +293,7 @@ class MyWindow(QWidget):
 
         target = [t_1, t_2, t_3, t_4, t_5, t_6]
 
-        print("目标坐标：", r_1, r_2, r_3, r_4, r_5, r_6)
-
-        # 使用pyautogui截取指定区域的屏幕截图
-        # screenshot_1 = pyautogui.screenshot(region=r_1).convert('RGB')
-        # screenshot_2 = pyautogui.screenshot(region=r_2).convert('RGB')
-        # screenshot_3 = pyautogui.screenshot(region=r_3).convert('RGB')
-        # screenshot_4 = pyautogui.screenshot(region=r_4).convert('RGB')
-        # screenshot_5 = pyautogui.screenshot(region=r_5).convert('RGB')
-        # screenshot_6 = pyautogui.screenshot(region=r_6).convert('RGB')
-
-        screenshot_1 = ImageGrab.grab(bbox=r_1).convert('RGB')
-        screenshot_2 = ImageGrab.grab(bbox=r_2).convert('RGB')
-        screenshot_3 = ImageGrab.grab(bbox=r_3).convert('RGB')
-        screenshot_4 = ImageGrab.grab(bbox=r_4).convert('RGB')
-        screenshot_5 = ImageGrab.grab(bbox=r_5).convert('RGB')
-        screenshot_6 = ImageGrab.grab(bbox=r_6).convert('RGB')
-
-        screenshot_1.save("screenshot_1.jpg")
-        screenshot_2.save("screenshot_2.jpg")
-        screenshot_3.save("screenshot_3.jpg")
-        screenshot_4.save("screenshot_4.jpg")
-        screenshot_5.save("screenshot_5.jpg")
-        screenshot_6.save("screenshot_6.jpg")
-
-        # 使用pytesseract来识别文字
-        text_1 = its(screenshot_1).rstrip('\n').rstrip('.').rstrip(',')
-        text_2 = its(screenshot_2).rstrip('\n').rstrip('.').rstrip(',')
-        text_3 = its(screenshot_3).rstrip('\n').rstrip('.').rstrip(',')
-        text_4 = its(screenshot_4).rstrip('\n').rstrip('.').rstrip(',')
-        text_5 = its(screenshot_5).rstrip('\n').rstrip('.').rstrip(',')
-        text_6 = its(screenshot_6).rstrip('\n').rstrip('.').rstrip(',')
-
-        # 获取到选项文字
-        option_names = [text_1, text_2, text_3, text_4, text_5, text_6]
-        # option_names = ['']
-
-        print("识别到的文字：", option_names)
+        # print("识别到的文字：", option_names)
         useful = True
         for i in range(len(option_names)):
             if option_names[i] == '':
@@ -202,20 +305,21 @@ class MyWindow(QWidget):
         else:
             print("识别到的文字：", option_names)
             final_option = fun.get_option_index(gun_name, option_names)
-            # print("最终选项：", final_option)
 
             target_x, target_y = target[final_option][0], target[final_option][1]
 
             pyautogui.mouseDown(target_x, target_y)
             pyautogui.mouseUp(target_x, target_y)
 
-            pyautogui.moveTo(window_position.x() + 40,
-                             window_position.y() + 240)
+            # self.main()
 
-            pyautogui.mouseDown(window_position.x() + 40,
-                                window_position.y() + 240)
-            pyautogui.mouseUp(window_position.x() + 40,
-                              window_position.y() + 240)
+            # pyautogui.moveTo(window_position.x() + 40,
+            #                  window_position.y() + 240)
+
+            # pyautogui.mouseDown(window_position.x() + 40,
+            #                     window_position.y() + 240)
+            # pyautogui.mouseUp(window_position.x() + 40,
+            #                   window_position.y() + 240)
 
     def register(self, option_num):
         window_position = self.pos()
@@ -255,7 +359,7 @@ class MyWindow(QWidget):
         text = text.replace('/', '')
 
         folder_path = './output_folder'
-        file_path = os.path.join(folder_path, text + '.jpg')
+        file_path = os.path.join(folder_path, text + '.png')
 
         gun_screenshot.save(file_path)
 
@@ -299,7 +403,7 @@ class MyWindow(QWidget):
         # 保存图片
         # screenshot.save("screenshot_text.png")
 
-        # 定义屏幕区域的坐标和大小
+        # 定义截图区域的坐标和大小
         r_1 = t_left, t_top, width, height
         r_2 = t_left + 200, t_top, width, height
         r_3 = t_left, t_top + 30, width, height
@@ -386,6 +490,8 @@ class MyWindow(QWidget):
             self.move(self.x(), self.y() - step)
         elif event.key() == Qt.Key_Down:
             self.move(self.x(), self.y() + step)
+        elif event.key() == Qt.Key_Escape:
+            self.close()
         else:
             self.setFocus()
 
