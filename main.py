@@ -111,26 +111,8 @@ class MyWindow(QWidget):
 
     def main(self):
         print('--------------------------------------')
-        window_position = self.pos()
-        left = window_position.x() + 90  # 左上角的 x 坐标
-        top = window_position.y() + 49   # 左上角的 y 坐标
-        right = window_position.x() + 237 + 90  # 右下角的 x 坐标
-        bottom = window_position.y() + 49 + 158  # 右下角的 y 坐标
 
-        screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
-        screenshot = screenshot.convert('RGB')
-        screenshot.save("screenshot.png")
-
-        screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-
-        # print(screenshot)
-
-        feature_vector = fun.get_gunimg_feature(screenshot)
-
-        print("本次特征", feature_vector)
-
-        gun_name = fun.get_gun_name(
-            feature_vector, guns_feature_dict).strip(".jpg")
+        gun_name = self.get_gun_name()
 
         if gun_name != "none":
             print(gun_name)
@@ -144,14 +126,45 @@ class MyWindow(QWidget):
             self.changeLabelText("未识别", "#FF1122")
 
     def test(self):
-        print("TEST")
+        # print("获取截图到test文件夹")
+        # self.get_options_screenshots()
+
+        print("获取枪械名字")
+        gun_name = self.get_gun_name()
+        print("识别到的枪械名字：", gun_name)
+
+        print("从特征库识别文字")
         screenshots_cv2 = self.get_options_screenshots()[1]
         option_names = self.get_options_names_by_features(screenshots_cv2)
         print(option_names)
-        # print(screenshots_text)
-        # print(screenshots_feature)
-        # a = self.get_options_names_by_pytesseract(screenshots_feature)
-        # print(a)
+
+        print("取出最接近的枪械名字")
+        button_index = fun.get_option_index(gun_name, option_names)
+        print(button_index)
+
+        # print("从截图通过OCR识别文字")
+        # screenshots_cv2 = self.get_options_screenshots()[1]
+        # option_names_2 = self.get_options_names_by_pytesseract(screenshots_cv2)
+        # print(option_names_2)
+
+    def get_gun_name(self):
+        window_position = self.pos()
+        left = window_position.x() + 90  # 左上角的 x 坐标
+        top = window_position.y() + 49   # 左上角的 y 坐标
+        right = window_position.x() + 237 + 90  # 右下角的 x 坐标
+        bottom = window_position.y() + 49 + 158  # 右下角的 y 坐标
+
+        screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
+        screenshot = screenshot.convert('RGB')
+        # screenshot.save("screenshot.png")
+
+        screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+        # print(screenshot)
+
+        feature_vector = fun.get_gunimg_feature(screenshot)
+        # print("本次特征", feature_vector)
+
+        return fun.get_gun_name_by_feature(feature_vector, guns_feature_dict).strip(".jpg")
 
     def register_options_file(self):
         gun_img_folder_path = './options'
@@ -167,7 +180,7 @@ class MyWindow(QWidget):
 
                 feature_vector = fun.get_optionimg_feature(img)
 
-                guns_feature_dict[filename] = list(feature_vector)
+                guns_feature_dict[filename.strip(".png")] = list(feature_vector)
 
         with open('options_feature_dict.json', 'w') as f:
             json.dump(guns_feature_dict, f)
@@ -193,18 +206,27 @@ class MyWindow(QWidget):
         o_4 = o_left, o_top + 62, width, height
         o_5 = o_left + 201, o_top + 62, width, height
 
+        bbox_0 = o_left, o_top, o_left + width, o_top + height
+        bbox_1 = o_left + 201, o_top, o_left + 201 + width, o_top + height
+        bbox_2 = o_left, o_top + 31, o_left + width, o_top + 31 + height
+        bbox_3 = o_left + 201, o_top + 31, o_left + 201 + width, o_top + 31 + height
+        bbox_4 = o_left, o_top + 62, o_left + width, o_top + 62 + height
+        bbox_5 = o_left + 201, o_top + 62, o_left + 201 + width, o_top + 62 + height
+
         regions = [o_0, o_1, o_2, o_3, o_4, o_5]
+        bboxs = [bbox_0, bbox_1, bbox_2, bbox_3, bbox_4, bbox_5]
 
         screenshots_img = []
         screenshots_cv2 = []
 
         for i in range(len(regions)):
-            screenshot = pyautogui.screenshot(region=regions[i])
+            # screenshot = pyautogui.screenshot(region=regions[i])
+            screenshot = ImageGrab.grab(bbox=bboxs[i])
             screenshots_img.append(screenshot)
 
         # 是否在此处保存图片
-        # for i in range(len(option_screenshots)):
-        #     option_screenshots[i].save("test/" + str(i) + ".png")
+        for i in range(len(screenshots_img)):
+            screenshots_img[i].save("test/" + str(i) + ".png")
 
         for i in range(len(screenshots_img)):
             screenshots_cv2.append(cv2.cvtColor(

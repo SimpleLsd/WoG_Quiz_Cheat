@@ -24,7 +24,7 @@ pixel_coordinates = [(0, 0), (236, 157)]
 #     return feature_vector
 
 
-def get_gun_name(feature_vector, guns_feature_dict):
+def get_gun_name_by_feature(feature_vector, guns_feature_dict):
     # 计算差异值（欧氏距离）
     # print(guns_feature_dict)
     diff = {}
@@ -55,7 +55,7 @@ def get_option_name_by_feature(feature_vector, options_feature_dict):
     sorted_diff = sorted(diff.items(), key=lambda x: x[1])
 
     # print("差异值列表：", sorted_diff)
-    print(sorted_diff[0][1])
+    # print(sorted_diff[0][1])
 
     if sorted_diff[0][1] < 50:
         return sorted_diff[0][0]
@@ -104,4 +104,8 @@ def get_option_index(given_string, candidate_strings):
             min_distance = distance
             closest_index = index
 
-    return closest_index
+    print("最小距离",min_distance)
+    if min_distance < 1:
+        return closest_index
+    else:
+        return None
