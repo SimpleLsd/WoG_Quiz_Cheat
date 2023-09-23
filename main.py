@@ -17,7 +17,7 @@ from pytesseract import image_to_string as its
 from PIL import ImageGrab
 
 
-position = (186, 916)
+position = (154, 793)
 
 with open('guns_feature_dict.json', 'r') as file:
     guns_feature_dict = json.load(file)
@@ -71,13 +71,17 @@ class MyWindow(QWidget):
         self.button_close.setGeometry(240, 220, 60, 30)
         self.button_close.clicked.connect(self.test)
 
-        self.button_close = QPushButton("重生成文件", self)
-        self.button_close.setGeometry(240, 250, 60, 30)
+        self.button_close = QPushButton("刷新枪械文件", self)
+        self.button_close.setGeometry(310, 220, 90, 30)
+        self.button_close.clicked.connect(self.register_guns_from_files)
+
+        self.button_close = QPushButton("刷新选项文件", self)
+        self.button_close.setGeometry(310, 250, 90, 30)
         self.button_close.clicked.connect(self.register_options_file)
 
-        self.button_close = QPushButton("全流程注册", self)
-        self.button_close.setGeometry(300, 250, 60, 30)
-        self.button_close.clicked.connect(self.register_options_now)
+        # self.button_close = QPushButton("注册当前选项", self)
+        # self.button_close.setGeometry(320, 250, 80, 30)
+        # self.button_close.clicked.connect(self.register_options_now)
 
         self.button_close = QPushButton("注册1", self)
         self.button_close.setGeometry(90, 220, 60, 20)
@@ -117,35 +121,61 @@ class MyWindow(QWidget):
         if gun_name != "none":
             print(gun_name)
             self.changeLabelText(gun_name, "#05e305")
-            # option_names = self.get_options_names_by_pytesseract(
-            #     self.get_options_screenshots())
-            # self.get_options_register(option_names)
-            # self.mouse_auto_click(gun_name, option_names)
+
+            # 从特征库识别文字
+            screenshots_cv2 = self.get_options_screenshots()[1]
+            option_names_f = self.get_options_names_by_features(
+                screenshots_cv2)
+            print('特征识别', option_names_f)
+
+            # 遍历从特征库识别的文字，取出最接近的那个索引值
+            option_index = self.get_option_index_strict(
+                gun_name, option_names_f)
+            print('特征识别索引', option_index)
+
+            for i in range(len(option_names_f)):
+                if option_names_f[i] == 'none':
+                    self.test(gun_name, option_names_f, screenshots_cv2)
+                    break
+
+            # self.mouse_auto_click(option_index)
+
+            # if option_index > -1:
+            #     self.main()
 
         else:
             self.changeLabelText("未识别", "#FF1122")
 
-    def test(self):
+    def test(self, gun_name, option_names_f, screenshots_cv2):
+        print('+++++++++++++++++++++++++++++++++++++++')
+
         # print("获取截图到test文件夹")
         # self.get_options_screenshots()
 
-        print("获取枪械名字")
-        gun_name = self.get_gun_name()
-        print("识别到的枪械名字：", gun_name)
+        print("从截图通过OCR识别文字")
+        option_names_ocr = self.get_options_names_by_pytesseract(
+            screenshots_cv2)
+        print(option_names_ocr)
 
-        print("从特征库识别文字")
-        screenshots_cv2 = self.get_options_screenshots()[1]
-        option_names = self.get_options_names_by_features(screenshots_cv2)
-        print(option_names)
+        # 遍历从特征库识别的文字，如果有空，取出索引值
+        none_indices = [index for index, item in enumerate(
+            option_names_f) if item == 'none']
+        print("库中不存在的索引", none_indices)
 
-        print("取出最接近的枪械名字")
-        button_index = fun.get_option_index(gun_name, option_names)
-        print(button_index)
+        # 然后注册对应的选项
+        self.get_options_register_one(
+            none_indices, option_names_ocr, screenshots_cv2)
 
-        # print("从截图通过OCR识别文字")
-        # screenshots_cv2 = self.get_options_screenshots()[1]
-        # option_names_2 = self.get_options_names_by_pytesseract(screenshots_cv2)
-        # print(option_names_2)
+        # print("取出最接近的枪械名字")
+        # button_index = fun.get_option_index(gun_name, option_names)
+        # print(button_index)
+
+    def get_option_index_strict(self, gun_name, option_names):
+        for i in range(len(option_names)):
+            if option_names[i] == gun_name:
+                return i
+
+        return -1
 
     def get_gun_name(self):
         window_position = self.pos()
@@ -164,11 +194,13 @@ class MyWindow(QWidget):
         feature_vector = fun.get_gunimg_feature(screenshot)
         # print("本次特征", feature_vector)
 
-        return fun.get_gun_name_by_feature(feature_vector, guns_feature_dict).strip(".jpg")
+        return fun.get_gun_name_by_feature(feature_vector, guns_feature_dict)
 
     def register_options_file(self):
         gun_img_folder_path = './options'
         guns_feature_dict = {}
+
+        num = 0
 
         for filename in os.listdir(gun_img_folder_path):
             if filename.endswith(('.png')):  # 仅处理图像文件，可以根据需要添加其他扩展名
@@ -180,10 +212,14 @@ class MyWindow(QWidget):
 
                 feature_vector = fun.get_optionimg_feature(img)
 
-                guns_feature_dict[filename.strip(".png")] = list(feature_vector)
+                guns_feature_dict[filename[:-4]] = list(feature_vector)
+
+                num += 1
 
         with open('options_feature_dict.json', 'w') as f:
             json.dump(guns_feature_dict, f)
+
+        print("注册完成目前有", num, "为", round(num/242*100, 2), "%")
 
     def register_options_now(self):
         screenshots_img, screenshots_cv2 = self.get_options_screenshots()
@@ -231,9 +267,8 @@ class MyWindow(QWidget):
         for i in range(len(screenshots_img)):
             screenshots_cv2.append(cv2.cvtColor(
                 np.array(screenshots_img[i]), cv2.COLOR_RGB2BGR))
-            
+
         return screenshots_img, screenshots_cv2
-    
 
     def get_options_names_by_pytesseract(self, screenshots):
         # 使用pytesseract来识别文字
@@ -249,6 +284,8 @@ class MyWindow(QWidget):
         return option_names
 
     def get_options_names_by_features(self, screenshots):
+        with open('options_feature_dict.json', 'r') as file:
+            options_feature_dict = json.load(file)
         # print(screenshots)
         names = []
         for i in range(len(screenshots)):
@@ -259,6 +296,24 @@ class MyWindow(QWidget):
                 feature_vector, options_feature_dict)
             names.append(option_name)
         return names
+
+    def get_options_register_one(self, index, option_names, screenshots):
+        num = 0
+        for i in index:
+            if option_names[i] != "":
+                # print(screenshots[i])
+                cv2.imwrite("./options/" +
+                            option_names[i].replace('/', '') + ".png", screenshots[i])
+                print("保存了", option_names[i])
+            else:
+                length = 20
+                random_string = ''.join(random.choice(
+                    string.ascii_letters + string.digits) for _ in range(length))
+                cv2.imwrite("./options/" +
+                            random_string + ".png", screenshots[i])
+
+            num += 1
+        print("注册了", num, "个选项")
 
     def get_options_register(self, option_names, screenshots):
         for i in range(len(screenshots)):
@@ -299,10 +354,10 @@ class MyWindow(QWidget):
 
         # self.changeLabelText("注册完成", 'green')
 
-    def mouse_auto_click(self, gun_name, option_names):
+    def mouse_auto_click(self, index):
         window_position = self.pos()
         t_left = window_position.x() + 10  # 左上角的 x 坐标
-        t_top = window_position.y() + 300  # 左上角的 y 坐标
+        t_top = window_position.y() + 315  # 左上角的 y 坐标
 
         # 鼠标点击坐标
         t_1 = t_left, t_top
@@ -314,33 +369,26 @@ class MyWindow(QWidget):
 
         target = [t_1, t_2, t_3, t_4, t_5, t_6]
 
-        # print("识别到的文字：", option_names)
-        useful = True
-        for i in range(len(option_names)):
-            if option_names[i] == '':
-                useful = False
+        if index != -1:
 
-        if useful == False:
-            text = "识别空字符串" + gun_name
-            self.changeLabelText(text, "#FF1122")
-        else:
-            print("识别到的文字：", option_names)
-            final_option = fun.get_option_index(gun_name, option_names)
-
-            target_x, target_y = target[final_option][0], target[final_option][1]
+            target_x, target_y = target[index][0], target[index][1]
 
             pyautogui.mouseDown(target_x, target_y)
             pyautogui.mouseUp(target_x, target_y)
 
-            # self.main()
+        else:
+            print("索引为-1")
 
-            # pyautogui.moveTo(window_position.x() + 40,
-            #                  window_position.y() + 240)
+        # pyautogui.moveTo(window_position.x() + 271,
+        #                  window_position.y() + 237)
 
-            # pyautogui.mouseDown(window_position.x() + 40,
-            #                     window_position.y() + 240)
-            # pyautogui.mouseUp(window_position.x() + 40,
-            #                   window_position.y() + 240)
+        pyautogui.moveTo(window_position.x() + 40,
+                         window_position.y() + 240)
+
+        # pyautogui.mouseDown(window_position.x() + 40,
+        #                     window_position.y() + 240)
+        # pyautogui.mouseUp(window_position.x() + 40,
+        #                   window_position.y() + 240)
 
     def register(self, option_num):
         window_position = self.pos()
@@ -406,7 +454,34 @@ class MyWindow(QWidget):
         with open('guns_feature_dict.json', 'w') as f:
             json.dump(guns_feature_dict, f)
 
-        print("注册完成", text, "目前有", num, "为", round(num/265*100, 2), "%")
+        print("注册完成", text, "目前有", num, "为", round(num/266*100, 2), "%")
+
+        self.changeLabelText("注册完成", 'green')
+
+    def register_guns_from_files(self):
+        gun_img_folder_path = './output_folder'
+
+        guns_feature_dict = {}
+
+        num = 0
+
+        for filename in os.listdir(gun_img_folder_path):
+            if filename.endswith(('.jpg', '.jpeg', '.png', '.bmp')):  # 仅处理图像文件，可以根据需要添加其他扩展名
+                # 拼接完整的文件路径
+                img_path = os.path.join(gun_img_folder_path, filename)
+
+                # 使用OpenCV读取图像
+                img = cv2.imread(img_path)
+
+                feature_vector = fun.get_gunimg_feature(img)
+
+                guns_feature_dict[filename[:-4]] = feature_vector
+                num += 1
+
+        with open('guns_feature_dict.json', 'w') as f:
+            json.dump(guns_feature_dict, f)
+
+        print("注册完成目前有", num, "为", round(num/265*100, 2), "%")
 
         self.changeLabelText("注册完成", 'green')
 

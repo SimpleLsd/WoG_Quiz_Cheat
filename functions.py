@@ -57,7 +57,7 @@ def get_option_name_by_feature(feature_vector, options_feature_dict):
     # print("差异值列表：", sorted_diff)
     # print(sorted_diff[0][1])
 
-    if sorted_diff[0][1] < 50:
+    if sorted_diff[0][1] < 10:
         return sorted_diff[0][0]
     else:
         return 'none'
@@ -104,7 +104,7 @@ def get_option_index(given_string, candidate_strings):
             min_distance = distance
             closest_index = index
 
-    print("最小距离",min_distance)
+    print("最小距离", min_distance)
     if min_distance < 1:
         return closest_index
     else:
