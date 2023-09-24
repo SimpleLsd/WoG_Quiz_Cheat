@@ -8,6 +8,7 @@ import numpy as np
 import functions as fun
 import random
 import string
+import time
 
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel
 from PyQt5.QtCore import Qt
@@ -17,7 +18,7 @@ from pytesseract import image_to_string as its
 from PIL import ImageGrab
 
 
-position = (154, 793)
+position = (192, 820)
 
 with open('guns_feature_dict.json', 'r') as file:
     guns_feature_dict = json.load(file)
@@ -115,6 +116,7 @@ class MyWindow(QWidget):
 
     def main(self):
         print('--------------------------------------')
+        time.sleep(0.2)
 
         gun_name = self.get_gun_name()
 
@@ -131,17 +133,16 @@ class MyWindow(QWidget):
             # 遍历从特征库识别的文字，取出最接近的那个索引值
             option_index = self.get_option_index_strict(
                 gun_name, option_names_f)
-            print('特征识别索引', option_index)
+            # print('特征识别索引', option_index)
 
-            for i in range(len(option_names_f)):
-                if option_names_f[i] == 'none':
-                    self.test(gun_name, option_names_f, screenshots_cv2)
-                    break
+            # for i in range(len(option_names_f)):
+            #     if option_names_f[i] == 'none':
+            #         self.test(gun_name, option_names_f, screenshots_cv2)
 
-            # self.mouse_auto_click(option_index)
+            self.mouse_auto_click(option_index)
 
-            # if option_index > -1:
-            #     self.main()
+            if option_index != -1:
+                self.main()
 
         else:
             self.changeLabelText("未识别", "#FF1122")
@@ -165,10 +166,6 @@ class MyWindow(QWidget):
         # 然后注册对应的选项
         self.get_options_register_one(
             none_indices, option_names_ocr, screenshots_cv2)
-
-        # print("取出最接近的枪械名字")
-        # button_index = fun.get_option_index(gun_name, option_names)
-        # print(button_index)
 
     def get_option_index_strict(self, gun_name, option_names):
         for i in range(len(option_names)):
@@ -313,7 +310,7 @@ class MyWindow(QWidget):
                             random_string + ".png", screenshots[i])
 
             num += 1
-        print("注册了", num, "个选项")
+        # print("注册了", num, "个选项")
 
     def get_options_register(self, option_names, screenshots):
         for i in range(len(screenshots)):
